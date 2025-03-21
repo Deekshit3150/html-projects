@@ -1,0 +1,57 @@
+import cv2 
+import mediapipe as mp 
+import pyttsx3
+
+# Initialize text-to-speech engine
+engine = pyttsx3.init()
+
+# Initialize Mediapipe Hands
+mp_hands = mp.solutions.hands
+hands = mp_hands.Hands(max_num_hands=2, min_detection_confidence=0.7)
+mp_drawing = mp.solutions.drawing_utils
+
+# Function to speak the detected gesture
+def speak(gesture):
+    engine.say(gesture)
+    engine.runAndWait()
+
+# Gesture detection based on finger positions
+def detect_gesture(landmarks):
+    # Identify gestures based on landmark positions
+    thumb_tip = landmarks[mp_hands.HandLandmark.THUMB_TIP]
+    index_tip = landmarks[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+
+    if thumb_tip.y < index_tip.y:  # Example: Thumb up gesture
+        return "Thumbs Up!"
+    elif thumb_tip.y > index_tip.y:  # Example: Thumb down gesture
+        return "Thumbs Down!"
+    
+    return None
+
+# Start capturing video
+cap = cv2.VideoCapture(0)
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    frame = cv2.flip(frame, 1)  # Flip the frame horizontally
+    results = hands.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+
+    if results.multi_hand_landmarks:
+        for hand_landmarks in results.multi_hand_landmarks:
+            mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+
+            gesture = detect_gesture(hand_landmarks.landmark)
+            if gesture:
+                print(gesture)  # Output gesture as text
+                speak(gesture)  # Output gesture as audio
+
+    cv2.imshow("Hand Gesture Detection", frame)
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):  # Press 'q' to exit
+        break
+
+cap.release()
+cv2.destroyAllWindows()
